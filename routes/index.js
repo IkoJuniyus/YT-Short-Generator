@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config');
 const { createJob, getJob, getAllJobs } = require('../services/job.service');
+const { addToQueue, getQueue, clearQueue } = require('../services/youtubeQueue.service');
 const youtubeAuthRouter = require('./youtubeAuth');
 
 const router = express.Router();
@@ -93,24 +94,46 @@ router.get('/download/:jobId/:file', (req, res) => {
   res.download(short.path, safeName);
 });
 
-router.get('/logs', (req, res) => {
-  const logger = require('../utils/logger');
-  
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
+router.post('/reupload', (req, res) => {
+  const { shortId } = req.body;
+  if (!shortId) return res.status(400).json({ success: false, error: 'shortId required' });
+
+  const queue = getQueue();
+  const item = queue.find(q => q.id === shortId);
+  if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
+
+  const { generateViralCaption } = require('../services/captionGenerator.service');
+  const { uploadVideo } = require('../services/youtube.service');
+
+  const caption = generateViralCaption(
+    item.segment.preview,
+    item.jobTitle,
+    item.channel
+  );
+
+  const result = await uploadVideo(item.filePath, caption.title, caption.description, caption.hashtags, {
+    privacy: config.youtube?.privacy || 'private',
   });
 
-  const send = (log) => {
-    res.write(`data: ${JSON.stringify(log)}\n\n`);
-  };
+  if (result.success) {
+    item.status = 'success';
+    item.youtubeVideoId = result.videoId;
+    item.uploadedAt = new Date().toISOString();
+    item.retryCount = 0;
+    fs.writeFileSync(path.join(config.folders.temp, 'youtube_upload_queue.json'), JSON.stringify(queue, null, 2));
+    res.json({ success: true, message: 'Re-upload successful' });
+  } else {
+    res.json({ success: false, error: result.error });
+  }
+});
 
-  logger.addLogListener(send);
+router.get('/queue', (req, res) => {
+  res.json({ success: true, data: getQueue() });
+});
 
-  req.on('close', () => {
-    logger.removeLogListener(send);
-  });
+router.delete('/queue', (req, res) => {
+  clearQueue();
+  res.json({ success: true, message: 'Queue cleared' });
 });
 
 module.exports = router;

@@ -88,16 +88,30 @@ function updateUI(data) {
   if (data.status === 'done' && data.shorts && data.shorts.length > 0) {
     show('results-section');
     const list = document.getElementById('shortsList');
-    list.innerHTML = data.shorts.map(s => `
+    list.innerHTML = data.shorts.map(s => {
+      const youtubeStatus = s.youtube?.status || 'not_attempted';
+      let actionHtml = `<a class="download-btn" href="/api/download/${data.id}/${s.file}">Download</a>`;
+      
+      if (youtubeStatus === 'error') {
+        actionHtml = `<button class="reupload-btn" onclick="reupload('${data.id}', '${s.index}')">🔄 Re-upload</button>`;
+      } else if (youtubeStatus === 'uploaded') {
+        actionHtml = `<span class="upload-status">✅ Uploaded to YouTube</span>`;
+      } else if (youtubeStatus === 'error') {
+        actionHtml = `<span class="upload-status">❌ Upload failed: ${escHtml(s.youtube?.error || '')}</span><br><button class="reupload-btn" onclick="reupload('${data.id}', '${s.index}')">🔄 Re-upload</button>`;
+      }
+      
+      return `
       <div class="short-card">
         <div class="short-header">
           <h3>Short #${s.index}</h3>
+          ${youtubeStatus === 'uploaded' ? '<span style="color:#4CAF50">✅</span>' : youtubeStatus === 'error' ? '<span style="color:#f44336">❌</span>' : ''}
         </div>
         <div class="short-time">${formatDur(s.segment.start)} - ${formatDur(s.segment.end)} (${s.segment.duration}s)</div>
         <div class="short-preview">${escHtml(s.segment.preview || '')}</div>
-        <a class="download-btn" href="/api/download/${data.id}/${s.file}">Download</a>
+        <div class="action-buttons">${actionHtml}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   if (data.status === 'error') {
