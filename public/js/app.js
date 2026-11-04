@@ -1,0 +1,130 @@
+let currentEventSource = null;
+
+function startGenerate() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
+  hide('results-section');
+  hide('error-section');
+  show('status-section');
+  document.getElementById('videoInfo').innerHTML = '';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('stageText').textContent = 'Memulai...';
+  document.getElementById('progressPct').textContent = '0%';
+  document.getElementById('shortsList').innerHTML = '';
+
+  if (currentEventSource) {
+    currentEventSource.close();
+  }
+
+  fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        showError(data.error || 'Gagal memulai');
+        btn.disabled = false;
+        btn.textContent = 'Generate Shorts';
+        return;
+      }
+      listenStatus(data.data.jobId);
+    })
+    .catch(err => {
+      showError(err.message);
+      btn.disabled = false;
+      btn.textContent = 'Generate Shorts';
+    });
+}
+
+function listenStatus(jobId) {
+  const es = new EventSource(`/api/status/${jobId}`);
+  currentEventSource = es;
+
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    updateUI(data);
+
+    if (data.status === 'done' || data.status === 'error') {
+      es.close();
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = false;
+      btn.textContent = 'Generate Shorts';
+    }
+  };
+
+  es.onerror = () => {
+    es.close();
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = false;
+    btn.textContent = 'Generate Shorts';
+  };
+}
+
+function updateUI(data) {
+  document.getElementById('progressBar').style.width = data.progress + '%';
+  document.getElementById('stageText').textContent = data.stage;
+  document.getElementById('progressPct').textContent = data.progress + '%';
+
+  if (data.videoInfo) {
+    const vi = data.videoInfo;
+    document.getElementById('videoInfo').innerHTML = `
+      <img src="${vi.thumbnail}" alt="thumb" onerror="this.style.display='none'">
+      <div class="info-text">
+        <h3>${escHtml(vi.title)}</h3>
+        <p>${escHtml(vi.channel || '')} &bull; ${formatDur(vi.duration)}</p>
+      </div>
+    `;
+  }
+
+  if (data.status === 'done' && data.shorts && data.shorts.length > 0) {
+    show('results-section');
+    const list = document.getElementById('shortsList');
+    list.innerHTML = data.shorts.map(s => `
+      <div class="short-card">
+        <div class="short-header">
+          <h3>Short #${s.index}</h3>
+        </div>
+        <div class="short-time">${formatDur(s.segment.start)} - ${formatDur(s.segment.end)} (${s.segment.duration}s)</div>
+        <div class="short-preview">${escHtml(s.segment.preview || '')}</div>
+        <a class="download-btn" href="/api/download/${data.id}/${s.file}">Download</a>
+      </div>
+    `).join('');
+  }
+
+  if (data.status === 'error') {
+    showError(data.error);
+  }
+}
+
+function formatDur(sec) {
+  if (!sec) return '0:00';
+  sec = Math.floor(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function showError(msg) {
+  show('error-section');
+  document.getElementById('errorText').textContent = msg;
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+document.getElementById('urlInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') startGenerate();
+});

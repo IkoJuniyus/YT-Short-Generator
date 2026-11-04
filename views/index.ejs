@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YT Short Generator</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>YT Short Generator</h1>
+      <p class="subtitle">Paste URL YouTube, otomatis generate beberapa Shorts</p>
+    </header>
+
+    <div class="input-section">
+      <div class="input-group">
+        <input type="text" id="urlInput" placeholder="Paste URL YouTube di sini..." autocomplete="off">
+        <button id="generateBtn" onclick="startGenerate()">Generate Shorts</button>
+      </div>
+    </div>
+
+    <div id="status-section" class="status-section hidden">
+      <div class="status-card">
+        <div class="video-info" id="videoInfo"></div>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+          </div>
+          <div class="progress-text">
+            <span id="stageText">Menunggu...</span>
+            <span id="progressPct">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="results-section" class="results-section hidden">
+      <h2>Shorts yang Dihasilkan</h2>
+      <div id="shortsList" class="shorts-grid"></div>
+    </div>
+
+    <div id="error-section" class="error-section hidden">
+      <div class="error-card">
+        <span class="error-icon">&#x26A0;</span>
+        <span id="errorText"></span>
+      </div>
+    </div>
+  </div>
+  <script src="/js/app.js"></script>
+</body>
+</html>
