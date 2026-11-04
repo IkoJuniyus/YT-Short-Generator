@@ -3,8 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config');
 const { createJob, getJob, getAllJobs } = require('../services/job.service');
+const youtubeAuthRouter = require('./youtubeAuth');
 
 const router = express.Router();
+
+router.use('/youtube', youtubeAuthRouter);
 
 router.post('/generate', (req, res) => {
   const { url } = req.body;

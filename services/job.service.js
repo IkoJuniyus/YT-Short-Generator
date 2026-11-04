@@ -5,6 +5,8 @@ const logger = require('../utils/logger');
 const { getVideoInfo, downloadVideo, extractSubtitles } = require('./ytdlp.service');
 const { analyzeTranscript } = require('./analyzer.service');
 const { getVideoMeta, generateShort } = require('./ffmpeg.service');
+const { generateViralCaption } = require('./captionGenerator.service');
+const { uploadVideo } = require('./youtube.service');
 const { ensureDir } = require('../utils/fileHelper');
 
 const jobs = new Map();
@@ -132,6 +134,34 @@ async function processJob(job) {
     job.progress = 100;
     emitUpdate(job);
     logger.info(`Job ${job.id} selesai: ${job.shorts.length} shorts`);
+
+    if (config.youtube?.enabled) {
+      job.stage = 'Auto-upload ke YouTube...';
+      emitUpdate(job);
+      for (const short of job.shorts) {
+        try {
+          const caption = generateViralCaption(
+            short.segment.preview,
+            job.videoInfo?.title || 'YouTube Short',
+            job.videoInfo?.channel || 'Channel'
+          );
+          const uploadResult = await uploadVideo(short.path, caption.title, caption.description, caption.hashtags, {
+            privacy: config.youtube?.privacy || 'private',
+          });
+          if (uploadResult.success) {
+            short.youtube = { status: 'uploaded', videoId: uploadResult.videoId };
+            logger.info(`Short #${short.index} uploaded to YouTube: ${uploadResult.videoId}`);
+          } else {
+            short.youtube = { status: 'error', error: uploadResult.error };
+            logger.warn(`Upload short #${short.index} failed: ${uploadResult.error}`);
+          }
+        } catch (err) {
+          short.youtube = { status: 'error', error: err.message };
+          logger.error(`Upload error:`, err.message);
+        }
+        emitUpdate(job);
+      }
+    }
 
   } catch (err) {
     job.status = 'error';

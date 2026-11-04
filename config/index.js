@@ -32,6 +32,10 @@ const config = {
     minShortDuration: parseInt(process.env.MIN_SHORT_DURATION, 10) || 15,
     fileTtlMinutes: parseInt(process.env.FILE_TTL_MINUTES, 10) || 60,
   },
+  youtube: {
+    enabled: process.env.YOUTUBE_ENABLED === 'true',
+    privacy: process.env.YOUTUBE_PRIVACY || 'private',
+  },
 };
 
 module.exports = config;
