@@ -93,4 +93,24 @@ router.get('/download/:jobId/:file', (req, res) => {
   res.download(short.path, safeName);
 });
 
+router.get('/logs', (req, res) => {
+  const logger = require('../utils/logger');
+  
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  const send = (log) => {
+    res.write(`data: ${JSON.stringify(log)}\n\n`);
+  };
+
+  logger.addLogListener(send);
+
+  req.on('close', () => {
+    logger.removeLogListener(send);
+  });
+});
+
 module.exports = router;

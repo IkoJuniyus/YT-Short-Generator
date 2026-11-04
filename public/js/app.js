@@ -1,4 +1,5 @@
 let currentEventSource = null;
+let logEventSource = null;
 
 function startGenerate() {
   const url = document.getElementById('urlInput').value.trim();
@@ -11,6 +12,7 @@ function startGenerate() {
   hide('results-section');
   hide('error-section');
   show('status-section');
+  showLogSection();
   document.getElementById('videoInfo').innerHTML = '';
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('stageText').textContent = 'Memulai...';
@@ -100,6 +102,27 @@ function updateUI(data) {
 
   if (data.status === 'error') {
     showError(data.error);
+  }
+}
+
+function showLogSection() {
+  const logDiv = document.getElementById('logSection');
+  if (logDiv && logDiv.classList.contains('hidden')) {
+    logDiv.classList.remove('hidden');
+    if (logEventSource) logEventSource.close();
+    logEventSource = new EventSource('/api/logs');
+    logEventSource.onmessage = (e) => {
+      const log = JSON.parse(e.data);
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${log.level}`;
+      const time = new Date(log.timestamp).toLocaleTimeString();
+      entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-level">${log.level.toUpperCase()}</span> <span class="log-message">${escHtml(log.message)}</span>`;
+      document.getElementById('logs').appendChild(entry);
+      document.getElementById('logs').scrollTop = document.getElementById('logs').scrollHeight;
+    };
+    logEventSource.onerror = () => {
+      logEventSource.close();
+    };
   }
 }
 

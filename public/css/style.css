@@ -232,6 +232,65 @@ header h1 {
   font-size: 1.5rem;
 }
 
+.log-section {
+  margin-top: 20px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #2a2a2a;
+}
+
+.log-section h3 {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.log-container {
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+}
+
+.log-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-time {
+  color: #666;
+}
+
+.log-level {
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+.log-level.INFO {
+  color: #4CAF50;
+}
+
+.log-level.WARN {
+  color: #FF9800;
+}
+
+.log-level.ERROR {
+  color: #f44336;
+}
+
+.log-level.DEBUG {
+  color: #9E9E9E;
+}
+
+.log-message {
+  color: #e1e1e1;
+}
+
 @media (max-width: 600px) {
   .input-group {
     flex-direction: column;
