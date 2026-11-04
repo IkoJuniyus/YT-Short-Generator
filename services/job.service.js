@@ -7,6 +7,7 @@ const { analyzeTranscript } = require('./analyzer.service');
 const { getVideoMeta, generateShort } = require('./ffmpeg.service');
 const { generateViralCaption } = require('./captionGenerator.service');
 const { uploadVideo } = require('./youtube.service');
+const { addToQueue, processQueue } = require('./youtubeQueue.service');
 const { ensureDir } = require('../utils/fileHelper');
 
 const jobs = new Map();
@@ -154,14 +155,22 @@ async function processJob(job) {
           } else {
             short.youtube = { status: 'error', error: uploadResult.error };
             logger.warn(`Upload short #${short.index} failed: ${uploadResult.error}`);
+            if (uploadResult.error.includes('exceeded')) {
+              addToQueue(short, job.videoInfo, job);
+            }
           }
         } catch (err) {
           short.youtube = { status: 'error', error: err.message };
           logger.error(`Upload error:`, err.message);
+          if (err.message.includes('exceeded')) {
+            addToQueue(short, job.videoInfo, job);
+          }
         }
         emitUpdate(job);
       }
     }
+
+    processQueue();
 
   } catch (err) {
     job.status = 'error';

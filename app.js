@@ -8,6 +8,7 @@ const morgan = require('morgan');
 const config = require('./config');
 const logger = require('./utils/logger');
 const { ensureDir } = require('./utils/fileHelper');
+const { processQueue } = require('./services/youtubeQueue.service');
 const apiRoutes = require('./routes');
 
 const app = express();
@@ -40,6 +41,7 @@ app.use((err, req, res, _next) => {
 function start() {
   app.listen(config.server.port, () => {
     logger.info(`YT Short Generator berjalan di ${config.server.baseUrl}`);
+    processQueue();
   });
 }
 
