@@ -94,7 +94,7 @@ router.get('/download/:jobId/:file', (req, res) => {
   res.download(short.path, safeName);
 });
 
-router.post('/reupload', (req, res) => {
+router.post('/reupload', async (req, res) => {
   const { shortId } = req.body;
   if (!shortId) return res.status(400).json({ success: false, error: 'shortId required' });
 
